@@ -1,0 +1,40 @@
+# FastAPI for building the API
+fastapi==0.115.4
+
+# Uvicorn for ASGI server (for development and production)
+uvicorn[gunicorn] == 0.22.0
+
+# Database interaction - psycopg2 for PostgreSQL (change if you're using a different DB)
+psycopg2-binary==2.9.6
+
+# Database pooling - asyncpg for PostgreSQL (if you need async support with pooling)
+asyncpg==0.27.0
+
+# SQLAlchemy for direct SQL (optional, but provides helper functions for working with raw SQL queries)
+sqlalchemy==2.0.17
+
+# Connection pooling via `databases` package (this handles async SQL pooling)
+databases==0.7.1
+
+# JWT token authentication (for securing endpoints)
+pyjwt==2.8.0
+
+# Password hashing
+passlib[bcrypt]==1.7.4
+
+# Pydantic for data validation and serialization
+pydantic==1.10.9
+
+# CORS middleware for handling cross-origin requests (e.g., if you have a front-end)
+fastapi[all]==0.95.0
+
+# Async support for HTTP calls (if needed, e.g., for external API requests)
+httpx==0.23.0
+
+# For handling file uploads (like images)
+python-multipart==0.0.5
+
+# SQLite for in-memory DB (no need for external DB server)
+sqlite==3.36.0  # SQLite is usually included in Python, but you can ensure the version
+
+aiosqlite

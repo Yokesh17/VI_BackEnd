@@ -1,0 +1,43 @@
+.qodo
+
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+.ntvs
+*.njsproj
+*.sln
+*.sw?
+
+
+# Python
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.db
+*.sqlite3
+
+# Virtual Environments
+venv/
+env/
+.venv/
+.env/
+
+# VSCode
+.vscode/
+
+# MacOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# mypy
+.mypy_cache/
+
+# dotenv
+.env
