@@ -38,3 +38,5 @@ python-multipart==0.0.5
 sqlite==3.36.0  # SQLite is usually included in Python, but you can ensure the version
 
 aiosqlite
+
+pydantic[email]

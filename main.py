@@ -1,8 +1,12 @@
 from fastapi import FastAPI, Depends, Request
 from db_config import db, get_connection
 from fastapi.responses import JSONResponse
+import users
+from queries import USERS_TABLE_CREATE
 
 app = FastAPI()
+app.include_router(users.app,tags=["users"])
+
 db.register_events(app)
 
 
@@ -22,30 +26,8 @@ async def db_session_middleware(request: Request, call_next):
 async def setup_db():
     # Run DDL once at startup; no need for per-request transaction here
     async with db.connection() as conn:
-        await db.insert(
-            conn,
-            """
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT,
-                email TEXT
-            )
-            """,
-        )
+        await db.insert(conn,USERS_TABLE_CREATE)
 
 
-@app.get("/users")
-async def list_users(conn=Depends(get_connection)):
-    # Both queries happen within a single transaction/connection per request
-    result = await db.read(conn, "SELECT * FROM users")
-    return {"status" : "success" , "data" : result }
 
 
-@app.post("/users")
-async def create_user(name: str, email: str, conn=Depends(get_connection)):
-    await db.insert(
-        conn,
-        "INSERT INTO users (name, email) VALUES (:name, :email)",
-        {"name": name, "email": email},
-    )
-    return {"message": "User added"}
