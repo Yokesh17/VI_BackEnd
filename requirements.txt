@@ -40,3 +40,6 @@ sqlite==3.36.0  # SQLite is usually included in Python, but you can ensure the v
 aiosqlite
 
 pydantic[email]
+
+passlib
+

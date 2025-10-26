@@ -73,7 +73,7 @@ class DatabaseManager:
         start = time.monotonic()
         result = await conn.fetch_all(query=query, values=values)
         await self._log_query(query, values, start)
-        return result
+        return [dict(r) for r in result]
 
     async def insert(self, conn: Database, query: str, values: Optional[Dict[str, Any]] = None):
         start = time.monotonic()

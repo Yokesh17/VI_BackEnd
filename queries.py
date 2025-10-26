@@ -10,7 +10,7 @@ USERS_TABLE_CREATE = """
     )
 """
 
-USERS_SELECT_ALL = '''SELECT id,username,email, 
+USERS_SELECT_ALL = '''SELECT id,username,email, password, 
                         datetime(created_at, '+5 hours', '30 minutes') AS created_at_ist,
                         datetime(updated_at, '+5 hours', '30 minutes') AS updated_at_ist  
                     FROM users '''
@@ -21,5 +21,10 @@ USER_INFO = '''SELECT id,username,email,
                 FROM users WHERE id=:id'''
 
 USERS_INSERT = "INSERT INTO users (username, email, password) VALUES (:username, :email, :password)"
+
+LOGIN_USER = '''SELECT id,username,email,password,
+                    datetime(created_at, '+5 hours', '30 minutes') AS created_at_ist,
+                    datetime(updated_at, '+5 hours', '30 minutes') AS updated_at_ist  
+                FROM users WHERE username=:username'''
 
 

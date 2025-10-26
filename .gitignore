@@ -12,7 +12,7 @@
 *.sln
 *.sw?
 
-
+test.py
 # Python
 *.pyc
 *.pyo
