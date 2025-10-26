@@ -5,7 +5,7 @@ from datetime import datetime
 
 from db_config import db, get_connection
 from pydantic import BaseModel, EmailStr, Field
-from queries import  USERS_SELECT_ALL, USERS_INSERT, LOGIN_USER
+from queries import  USERS_SELECT_ALL, USERS_INSERT, LOGIN_USER, LOGIN_USER_WITH_EMAIL
 from utils import hash_password, verify_password
 from .dependencies import get_current_user
 
@@ -14,19 +14,27 @@ class User(BaseModel):
     email: EmailStr  # Validates if the email is in a valid format
     password: str = Field(..., min_length=8) 
 
+class Login(BaseModel):
+    username: str  # Can be either username or email
+    password: str
+
 router = APIRouter(prefix="/auth")
 
 @router.post("/login")
 async def login(response: Response, body : str,  conn=Depends(get_connection)):
     # Check credentials
     data = decode_token(body)
-    print(data)
+    data = Login(**data)
+
+    is_email = "@" in data.username
+
+    # Select query and parameters
+    query = LOGIN_USER_WITH_EMAIL if is_email else LOGIN_USER
+    params = {"email": data.username} if is_email else {"username": data.username}
     
-    result = await db.read(conn, LOGIN_USER,  
-                    {"username": data["username"]})
-    print(result[0]["password"])
+    result = await db.read(conn, query,params)
     
-    if not result or not verify_password(data["password"], result[0]["password"]):
+    if not result or not verify_password(data.password, result[0]["password"]):
         return {"status": "failure", "message": "invalid username or password"}
 
     data = {"sub": result}
@@ -40,22 +48,22 @@ async def login(response: Response, body : str,  conn=Depends(get_connection)):
 
     return {"access_token": access_token}
 
-# @router.post("/signUp")
-# async def create_user(body: str, conn=Depends(get_connection)):
-#     # Decode JWT body similar to login endpoint
-#     data = decode_token(body)
-#     data = User(**data)
+@router.post("/signUp")
+async def create_user(body: str, conn=Depends(get_connection)):
+    # Decode JWT body similar to login endpoint
+    data = decode_token(body)
+    data = User(**data)
 
-#     result = await db.insert(
-#         conn,
-#         USERS_INSERT,
-#         {
-#             "username": data.username,
-#             "email": data.email,
-#             "password": hash_password(data.password),
-#         },
-#     )
-#     return {"status": "success", "data": result}
+    result = await db.insert(
+        conn,
+        USERS_INSERT,
+        {
+            "username": data.username,
+            "email": data.email,
+            "password": hash_password(data.password),
+        },
+    )
+    return {"status": "success", "data": result}
 
 
 @router.post("/refresh")
@@ -89,14 +97,14 @@ async def list_users(conn=Depends(get_connection)):
     return {"status" : "success" , "data" : result }
 
 
-@router.post("/signUp")
-async def create_user(data : User, conn=Depends(get_connection)):
-    result = await db.insert(
-        conn,
-        USERS_INSERT,
-        {"username": data.username, "email": data.email, "password": hash_password(data.password)},
-    )
-    return {"status" : "success","data": result }
+# @router.post("/signUp")
+# async def create_user(data : User, conn=Depends(get_connection)):
+#     result = await db.insert(
+#         conn,
+#         USERS_INSERT,
+#         {"username": data.username, "email": data.email, "password": hash_password(data.password)},
+#     )
+#     return {"status" : "success","data": result }
 
 
 

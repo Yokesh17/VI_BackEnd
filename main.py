@@ -3,6 +3,7 @@ from db_config import db, get_connection
 from fastapi.responses import JSONResponse
 from queries import USERS_TABLE_CREATE
 from fastapi.exceptions import RequestValidationError
+from pydantic_core import ValidationError
 from auth import routes as auth_route
 
 app = FastAPI()
@@ -31,6 +32,11 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 async def db_session_middleware(request: Request, call_next):
     try:
         response = await call_next(request)
+    except ValidationError as err:
+        response = JSONResponse(
+                    status_code=200,
+                    content={"status": "error", "message": "mandatory fields missing"},
+                )
     except Exception as e:
         response = JSONResponse(
                     status_code=200,

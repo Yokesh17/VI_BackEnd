@@ -27,4 +27,9 @@ LOGIN_USER = '''SELECT id,username,email,password,
                     datetime(updated_at, '+5 hours', '30 minutes') AS updated_at_ist  
                 FROM users WHERE username=:username'''
 
+LOGIN_USER_WITH_EMAIL = '''SELECT id,username,email,password,
+                    datetime(created_at, '+5 hours', '30 minutes') AS created_at_ist,
+                    datetime(updated_at, '+5 hours', '30 minutes') AS updated_at_ist  
+                FROM users WHERE email=:email'''
+
 
