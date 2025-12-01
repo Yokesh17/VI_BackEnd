@@ -18,12 +18,15 @@ class Login(BaseModel):
     username: str  # Can be either username or email
     password: str
 
+class LoginPayload(BaseModel):
+    body: str
+
 router = APIRouter(prefix="/auth")
 
 @router.post("/login")
-async def login(response: Response, body : str,  conn=Depends(get_connection)):
+async def login(response: Response, payload: LoginPayload,  conn=Depends(get_connection)):
     # Check credentials
-    data = decode_token(body)
+    data = decode_token(payload.body)
     data = Login(**data)
 
     is_email = "@" in data.username
