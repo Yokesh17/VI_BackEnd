@@ -11,23 +11,11 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173/"],            # Allow all origins
+    allow_origins=["http://localhost:5173/","http://127.0.0.1:5500/","http://127.0.0.1:5500/test.html"],            # Allow all origins
     allow_credentials=True,
     allow_methods=["*"],            # Allow all HTTP methods
     allow_headers=["*"],            # Allow all request headers
 )
-
-@app.options("/{rest_of_path:path}")
-async def preflight_handler(rest_of_path: str):
-    return JSONResponse(
-        status_code=200,
-        content=None,
-        headers={
-            "Access-Control-Allow-Origin": "http://localhost:5173",
-            "Access-Control-Allow-Methods": "*",
-            "Access-Control-Allow-Headers": "*",
-        }
-    )
 
 
 app.include_router(auth_route.router,tags=["auth"])
