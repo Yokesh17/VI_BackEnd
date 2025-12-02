@@ -17,6 +17,17 @@ app.add_middleware(
     allow_headers=["*"],            # Allow all request headers
 )
 
+@app.options("/{rest_of_path:path}")
+async def preflight_handler(rest_of_path: str):
+    return JSONResponse(
+        status_code=200,
+        content=None,
+        headers={
+            "Access-Control-Allow-Origin": "http://localhost:5173",
+            "Access-Control-Allow-Methods": "*",
+            "Access-Control-Allow-Headers": "*",
+        }
+    )
 
 app.include_router(auth_route.router,tags=["auth"])
 
