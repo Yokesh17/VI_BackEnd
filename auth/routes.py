@@ -8,6 +8,7 @@ from pydantic import BaseModel, EmailStr, Field
 from queries import  USERS_SELECT_ALL, USERS_INSERT, LOGIN_USER, LOGIN_USER_WITH_EMAIL
 from utils import hash_password, verify_password
 from .dependencies import get_current_user
+import base64
 
 class User(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)  
@@ -26,7 +27,7 @@ router = APIRouter(prefix="/auth")
 @router.post("/login")
 async def login(response: Response, payload: LoginPayload,  conn=Depends(get_connection)):
     # Check credentials
-    data = decode_token(payload.body)
+    data = base64.b64decode(payload.body).decode("utf-8")
     data = Login(**data)
 
     is_email = "@" in data.username
@@ -49,12 +50,12 @@ async def login(response: Response, payload: LoginPayload,  conn=Depends(get_con
     # Send refresh token as HTTP-only cookie
     response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, samesite="lax")
 
-    return {"access_token": access_token}
+    return {"status" : "success","access_token": access_token}
 
 @router.post("/signUp")
-async def create_user(body: str, conn=Depends(get_connection)):
+async def create_user(payload: LoginPayload, conn=Depends(get_connection)):
     # Decode JWT body similar to login endpoint
-    data = decode_token(body)
+    data = base64.b64decode(payload.body).decode("utf-8")
     data = User(**data)
 
     result = await db.insert(
