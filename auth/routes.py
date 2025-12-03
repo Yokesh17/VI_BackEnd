@@ -9,6 +9,7 @@ from queries import  USERS_SELECT_ALL, USERS_INSERT, LOGIN_USER, LOGIN_USER_WITH
 from utils import hash_password, verify_password
 from .dependencies import get_current_user
 import base64
+import json
 
 class User(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)  
@@ -27,7 +28,7 @@ router = APIRouter(prefix="/auth")
 @router.post("/login")
 async def login(response: Response, payload: LoginPayload,  conn=Depends(get_connection)):
     # Check credentials
-    data = base64.b64decode(payload.body).decode("utf-8")
+    data = json.load(base64.b64decode(payload.body).decode("utf-8"))
     data = Login(**data)
 
     is_email = "@" in data.username
@@ -55,7 +56,7 @@ async def login(response: Response, payload: LoginPayload,  conn=Depends(get_con
 @router.post("/signUp")
 async def create_user(payload: LoginPayload, conn=Depends(get_connection)):
     # Decode JWT body similar to login endpoint
-    data = base64.b64decode(payload.body).decode("utf-8")
+    data = json.load(base64.b64decode(payload.body).decode("utf-8"))
     data = User(**data)
 
     result = await db.insert(

@@ -47,17 +47,29 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     errors = exc.errors()
     message = "; ".join([f"{'.'.join([str(loc) for loc in err['loc']])}: {err['msg']}" for err in errors])
 
-    return JSONResponse(
+    response = JSONResponse(
         status_code=200,  # or 200 if you prefer
         content={"status": "error", "message": message},
     )
+    # Add CORS headers to error response
+    origin = request.headers.get("origin")
+    if origin in origins:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
-    return JSONResponse(
+    response = JSONResponse(
         status_code=exc.status_code,
         content={"status": "error", "message": exc.detail},
     )
+    # Add CORS headers to error response
+    origin = request.headers.get("origin")
+    if origin in origins:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
 
 @app.middleware("http")
 async def db_session_middleware(request: Request, call_next):
@@ -68,11 +80,21 @@ async def db_session_middleware(request: Request, call_next):
                     status_code=200,
                     content={"status": "error", "message": "mandatory fields missing"},
                 )
+        # Preserve CORS headers for error responses
+        origin = request.headers.get("origin")
+        if origin in origins:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
     except Exception as e:
         response = JSONResponse(
                     status_code=200,
                     content={"status": "error", "message": str(e)},
                 )
+        # Preserve CORS headers for error responses
+        origin = request.headers.get("origin")
+        if origin in origins:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
     return response
 
 
