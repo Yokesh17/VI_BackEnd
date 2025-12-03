@@ -28,7 +28,7 @@ router = APIRouter(prefix="/auth")
 @router.post("/login")
 async def login(response: Response, payload: LoginPayload,  conn=Depends(get_connection)):
     # Check credentials
-    data = json.load(base64.b64decode(payload.body).decode("utf-8"))
+    data = json.loads(base64.b64decode(payload.body).decode("utf-8"))
     data = Login(**data)
 
     is_email = "@" in data.username
@@ -56,7 +56,7 @@ async def login(response: Response, payload: LoginPayload,  conn=Depends(get_con
 @router.post("/signUp")
 async def create_user(payload: LoginPayload, conn=Depends(get_connection)):
     # Decode JWT body similar to login endpoint
-    data = json.load(base64.b64decode(payload.body).decode("utf-8"))
+    data = json.loads(base64.b64decode(payload.body).decode("utf-8"))
     data = User(**data)
 
     result = await db.insert(
@@ -80,7 +80,7 @@ def refresh_token(refresh_token: str | None = Cookie(default=None)):
     username = payload.get("sub")
 
     new_access_token = create_access_token({"sub": username})
-    return {"access_token": new_access_token}
+    return {"status" : "success" ,"access_token": new_access_token}
 
 
 @router.get("/protected")
