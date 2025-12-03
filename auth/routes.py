@@ -6,7 +6,7 @@ from datetime import datetime
 from db_config import db, get_connection
 from pydantic import BaseModel, EmailStr, Field
 from queries import  USERS_SELECT_ALL, USERS_INSERT, LOGIN_USER, LOGIN_USER_WITH_EMAIL
-from utils import hash_password, verify_password
+from utils import hash_passwordf, verify_password
 from .dependencies import get_current_user
 import base64
 import json
