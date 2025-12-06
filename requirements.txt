@@ -14,7 +14,7 @@ asyncpg==0.27.0
 sqlalchemy==2.0.17
 
 # Connection pooling via `databases` package (this handles async SQL pooling)
-databases==0.7.1
+databases
 
 # JWT token authentication (for securing endpoints)
 pyjwt==2.8.0
