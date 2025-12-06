@@ -35,7 +35,7 @@ httpx==0.23.0
 python-multipart
 
 # SQLite for in-memory DB (no need for external DB server)
-sqlite==3.36.0  # SQLite is usually included in Python, but you can ensure the version
+sqlite  # SQLite is usually included in Python, but you can ensure the version
 
 aiosqlite
 
