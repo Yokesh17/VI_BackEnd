@@ -4,7 +4,10 @@ import jwt
 from datetime import datetime, timedelta
 from fastapi import HTTPException, status
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(
+    schemes=["argon2"],
+    deprecated="auto",
+)
 
 SECRET_KEY = "3213d8b8908c6224acad88f034b3a39eb46cdd3d40ae817a26beb930a1870353"  # 🔒 change in production
 ALGORITHM = "HS256"

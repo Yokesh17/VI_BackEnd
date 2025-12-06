@@ -20,9 +20,10 @@ databases
 pyjwt==2.8.0
 
 # Password hashing
-bcrypt
-passlib[bcrypt]
+argon2-cffi>=21.3.0
+passlib[argon2]==1.7.4
 
+passlib
 
 # Pydantic for data validation and serialization
 pydantic>=2.0
@@ -43,8 +44,6 @@ python-multipart
 aiosqlite
 
 pydantic[email]
-
-passlib
 
 boto3
 
