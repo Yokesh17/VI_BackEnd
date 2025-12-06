@@ -20,8 +20,8 @@ databases
 pyjwt==2.8.0
 
 # Password hashing
-bcrypt==4.1.0
-passlib[bcrypt]==1.7.4
+bcrypt
+passlib[bcrypt]
 
 
 # Pydantic for data validation and serialization
