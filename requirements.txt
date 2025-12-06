@@ -32,7 +32,7 @@ fastapi[all]
 httpx==0.23.0
 
 # For handling file uploads (like images)
-python-multipart==0.0.5
+python-multipart
 
 # SQLite for in-memory DB (no need for external DB server)
 sqlite==3.36.0  # SQLite is usually included in Python, but you can ensure the version
