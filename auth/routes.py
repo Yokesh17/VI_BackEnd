@@ -59,6 +59,13 @@ async def create_user(payload: LoginPayload, conn=Depends(get_connection)):
     data = json.loads(base64.b64decode(payload.body).decode("utf-8"))
     data = User(**data)
 
+    decoded = base64.b64decode(payload.body).decode("utf-8")
+    user_data = json.loads(decoded)
+    password = user_data["password"]
+
+    print("RAW PASSWORD:", password)
+    print("BYTE LENGTH:", len(password.encode()))
+
     result = await db.insert(
         conn,
         USERS_INSERT,

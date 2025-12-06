@@ -44,3 +44,5 @@ pydantic[email]
 
 passlib
 
+boto3
+
