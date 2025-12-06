@@ -1,5 +1,5 @@
 # FastAPI for building the API
-fastapi
+fastapi>=0.110.0
 
 # Uvicorn for ASGI server (for development and production)
 uvicorn[gunicorn] == 0.22.0
@@ -23,7 +23,8 @@ pyjwt==2.8.0
 passlib[bcrypt]==1.7.4
 
 # Pydantic for data validation and serialization
-pydantic==1.10.9
+pydantic>=2.0
+pydantic-settings>=2.0
 
 # CORS middleware for handling cross-origin requests (e.g., if you have a front-end)
 fastapi[all]
