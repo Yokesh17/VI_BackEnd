@@ -1,11 +1,14 @@
 from fastapi import FastAPI, Depends, Request, HTTPException
 from db_config import db, get_connection
 from fastapi.responses import JSONResponse
-from queries import USERS_TABLE_CREATE
+from queries import USERS_TABLE_CREATE, USER_DETAILS_CREATE
 from fastapi.exceptions import RequestValidationError
 from pydantic_core import ValidationError
 from auth import routes as auth_route
 from fastapi.middleware.cors import CORSMiddleware
+
+from dotenv import load_dotenv
+load_dotenv()
 
 app = FastAPI()
 
@@ -97,12 +100,13 @@ async def db_session_middleware(request: Request, call_next):
             response.headers["Access-Control-Allow-Credentials"] = "true"
     return response
 
-
+import os
 @app.on_event("startup")
 async def setup_db():
     # Run DDL once at startup; no need for per-request transaction here
     async with db.connection() as conn:
         await db.insert(conn,USERS_TABLE_CREATE)
+        await db.insert(conn,USER_DETAILS_CREATE)
 
 
 

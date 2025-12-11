@@ -3,9 +3,16 @@ import logging
 import time
 from contextlib import asynccontextmanager
 from typing import Any, Dict, Optional
+import re
 
 from databases import Database
 from fastapi import FastAPI
+from dotenv import load_dotenv
+import os
+import urllib.parse
+
+
+load_dotenv()
 
 # ------------------------------------------------------------
 # Logging setup
@@ -55,6 +62,18 @@ class DatabaseManager:
             logger.info(
                 f"Connected to DB ({'with pooling' if self.pooling else 'no pooling'})"
             )
+            # If DB_SCHEMA is set, attempt to ensure the schema exists and set the search_path
+            schema = os.getenv("DB_SCHEMA")
+            if schema:
+                try:
+                    # Create schema if it doesn't exist (no-op if already present)
+                    await self.database.execute(f'CREATE SCHEMA IF NOT EXISTS "{schema}"')
+                    # Set the search_path so unqualified table names resolve to the schema
+                    await self.database.execute(f'SET search_path TO "{schema}", public')
+                    logger.info(f'Set search_path to "{schema}"')
+                except Exception as _err:
+                    # Don't fail the entire app if setting schema fails; just log a warning
+                    logger.warning(f'Unable to set search_path to "{schema}": {_err}')
 
     async def disconnect(self):
         if self.database.is_connected:
@@ -106,6 +125,21 @@ class DatabaseManager:
         logger.info(f"→ Begin transaction on DB #{db_id}")
         async with self.database.transaction():
             try:
+                # Ensure per-transaction search_path is set so unqualified names
+                # resolve to the configured schema even for pooled connections.
+                schema = os.getenv("DB_SCHEMA")
+                if schema:
+                    # Basic validation to avoid SQL injection via schema name
+                    if re.match(r'^[A-Za-z_][A-Za-z0-9_]*$', schema):
+                        try:
+                            # Use SET LOCAL so this applies only to the current transaction
+                            await self.database.execute(f'SET LOCAL search_path TO "{schema}", public')
+                            logger.info(f"Applied SET LOCAL search_path TO '{schema}' for transaction #{db_id}")
+                        except Exception as _e:
+                            logger.warning(f"Failed to SET LOCAL search_path to '{schema}': {_e}")
+                    else:
+                        logger.warning(f"DB_SCHEMA '{schema}' contains invalid characters and will be ignored")
+
                 yield self.database
             finally:
                 logger.info(f"← End transaction on DB #{db_id}")
@@ -114,11 +148,17 @@ class DatabaseManager:
 # ------------------------------------------------------------
 # Instance setup
 # ------------------------------------------------------------
-DATABASE_URL = "sqlite+aiosqlite:///database.db"
-# DATABASE_URL = "postgresql+asyncpg://user:pass@localhost/dbname"
-# DATABASE_URL = "mysql+asyncmy://user:pass@localhost/dbname"
+username = os.getenv("DB_USER")
+password = os.getenv("DB_PASSWORD")
+host = os.getenv("DB_HOST")
+db = os.getenv("DB_NAME")
+port = os.getenv("DB_PORT")
 
-db = DatabaseManager(DATABASE_URL)
+# DATABASE_URL = "sqlite+aiosqlite:///database.db"
+base_url = f"postgresql+asyncpg://{username}:{password}@{host}:{port}/{db}"
+
+
+db = DatabaseManager(base_url)
 
 
 # ------------------------------------------------------------
@@ -128,3 +168,5 @@ async def get_connection():
     """Dependency injection provider for FastAPI routes."""
     async with db.connection() as conn:
         yield conn
+
+
