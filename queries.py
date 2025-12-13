@@ -19,7 +19,7 @@ USERS_TABLE_CREATE = f"""
     );
 """
 USER_DETAILS_CREATE = f"""
-    CREATE TABLE IF NOT EXISTS {S}user_details (
+    CREATE TABLE IF NOT EXISTS vi.user_details (
         user_id INTEGER PRIMARY KEY,
         full_name TEXT NOT NULL,
         bio TEXT,
@@ -51,14 +51,19 @@ USER_INFO = F'''SELECT id, username, email,
                     (updated_at + INTERVAL '5 hours 30 minutes') AS updated_at_ist
                 FROM {S}users WHERE id=:id'''
 
-USERS_INSERT = f"INSERT INTO {S}users (username, email, password) VALUES (:username, :email, :password)"
+USERS_INSERT = f"""
+INSERT INTO vi.users (username, email, password)
+VALUES (%(username)s, %(email)s, %(password)s)
+RETURNING id
+"""
+
 
 LOGIN_USER = f'''SELECT id,username,email,password
-                FROM {S}users WHERE username=:username'''
+                FROM {S}users WHERE username=%(username)s ;'''
 
 LOGIN_USER_WITH_EMAIL = f'''SELECT id,username,email,password,
-                    datetime(created_at, '+5 hours', '30 minutes') AS created_at_ist,
-                    datetime(updated_at, '+5 hours', '30 minutes') AS updated_at_ist  
-                FROM {S}users WHERE email=:email'''
+                    created_at + interval '5 hours 30 minutes' AS created_at_ist,
+                    updated_at + interval '5 hours 30 minutes' AS updated_at_ist
+                FROM {S}users WHERE email = %(email)s '''
 
 

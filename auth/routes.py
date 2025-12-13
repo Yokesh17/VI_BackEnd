@@ -2,8 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, Cookie, Request
 from fastapi.responses import JSONResponse
 from .utils import create_access_token, create_refresh_token, decode_token
 from datetime import datetime
-
-from db_config import db, get_connection
+from db_config import  get_db_connection as get_connection, get_data, get_datas, execute_query, update, return_update, insert, return_insert, execute_returning_one, execute_all
 from pydantic import BaseModel, EmailStr, Field
 from queries import  USERS_SELECT_ALL, USERS_INSERT, LOGIN_USER, LOGIN_USER_WITH_EMAIL
 from utils import hash_password, verify_password
@@ -25,8 +24,9 @@ class LoginPayload(BaseModel):
 
 router = APIRouter(prefix="/auth")
 
+
 @router.post("/login")
-async def login(response: Response, payload: LoginPayload,  conn=Depends(get_connection)):
+def login(response: Response, payload: LoginPayload,  conn=Depends(get_connection)):
     # Check credentials
     data = json.loads(base64.b64decode(payload.body).decode("utf-8"))
     data = Login(**data)
@@ -37,7 +37,7 @@ async def login(response: Response, payload: LoginPayload,  conn=Depends(get_con
     query = LOGIN_USER_WITH_EMAIL if is_email else LOGIN_USER
     params = {"email": data.username} if is_email else {"username": data.username}
     
-    result = await db.read(conn, query,params)
+    result = execute_query(conn, query,params)
     
     if not result or not verify_password(data.password, result[0]["password"]):
         return {"status": "failure", "message": "invalid username or password"}
@@ -54,20 +54,14 @@ async def login(response: Response, payload: LoginPayload,  conn=Depends(get_con
     return {"status" : "success","access_token": access_token}
 
 @router.post("/signUp")
-async def create_user(payload: LoginPayload, conn=Depends(get_connection)):
-    # Decode JWT body similar to login endpoint
-    data = json.loads(base64.b64decode(payload.body).decode("utf-8"))
-    data = User(**data)
-
+def create_user(payload: LoginPayload):
+    # Decode body similar to login endpoint
     decoded = base64.b64decode(payload.body).decode("utf-8")
     user_data = json.loads(decoded)
-    password = user_data["password"]
+    data = User(**user_data)
 
-    print("RAW PASSWORD:", password)
-    print("BYTE LENGTH:", len(password.encode()))
-
-    result = await db.insert(
-        conn,
+    # Execute insert in a single, short-lived connection suitable for transaction pooling
+    result = execute_returning_one(
         USERS_INSERT,
         {
             "username": data.username,
@@ -75,7 +69,7 @@ async def create_user(payload: LoginPayload, conn=Depends(get_connection)):
             "password": hash_password(data.password),
         },
     )
-    return {"status": "success", "data": result}
+    return {"status": "success", "data": result["id"]}
 
 
 @router.post("/refresh")
@@ -101,22 +95,11 @@ def protected_route(current_user: str = Depends(get_current_user)):
 
 
 
-@router.get("/users")
-async def list_users(conn=Depends(get_connection)):
-    # raise ValueError
-    # Both queries happen within a single transaction/connection per request
-    result = await db.read(conn, USERS_SELECT_ALL)
-    return {"status" : "success" , "data" : result }
-
-
-# @router.post("/signUp")
-# async def create_user(data : User, conn=Depends(get_connection)):
-#     result = await db.insert(
-#         conn,
-#         USERS_INSERT,
-#         {"username": data.username, "email": data.email, "password": hash_password(data.password)},
-#     )
-#     return {"status" : "success","data": result }
+# @router.get("/users")
+# def list_users():
+#     result = execute_all(USERS_SELECT_ALL)
+# pen within a single transaction/connection per request
+#     result = await db.read(conn, USERS_SELECT_ALL)
 
 
 

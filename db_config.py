@@ -1,172 +1,214 @@
-# db_config.py
-import logging
-import time
-from contextlib import asynccontextmanager
-from typing import Any, Dict, Optional
-import re
-
-from databases import Database
-from fastapi import FastAPI
+import psycopg2
+from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
 import os
-import urllib.parse
+# import requests
+from fastapi import FastAPI, status, Depends, HTTPException, APIRouter
+from typing import Generator
+from contextlib import contextmanager
 
-
+# Load environment variables from .env
 load_dotenv()
 
-# ------------------------------------------------------------
-# Logging setup
-# ------------------------------------------------------------
-logger = logging.getLogger("db")
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] [%(name)s] %(message)s",
-)
+# Fetch variables from environment
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_HOST = os.getenv("DB_HOST")
+DB_PORT = os.getenv("DB_PORT")
+DB_NAME = os.getenv("DB_NAME")
+secret_key = os.getenv("SECRET_KEY")
+algorithm = os.getenv("ALGORITHM")
 
-logger.setLevel(logging.CRITICAL)
-# Or you can globally disable all loggers if needed:
-# logging.disable(logging.CRITICAL)
-
-class DatabaseManager:
-    def __init__(self, database_url: str):
-        self.database_url = database_url
-
-        # SQLite doesn't support pooling, databases will handle it transparently
-        if database_url.startswith("sqlite"):
-            self.database = Database(database_url)
-            self.pooling = False
-        else:
-            self.database = Database(
-                database_url,
-                min_size=5,
-                max_size=20,
-                timeout=30.0,
-            )
-            self.pooling = True
-
-    # ----------------------------
-    # FastAPI lifecycle events
-    # ----------------------------
-    def register_events(self, app: FastAPI):
-        @app.on_event("startup")
-        async def startup():
-            await self.connect()
-
-        @app.on_event("shutdown")
-        async def shutdown():
-            await self.disconnect()
-
-    async def connect(self):
-        if not self.database.is_connected:
-            await self.database.connect()
-            logger.info(
-                f"Connected to DB ({'with pooling' if self.pooling else 'no pooling'})"
-            )
-            # If DB_SCHEMA is set, attempt to ensure the schema exists and set the search_path
-            schema = os.getenv("DB_SCHEMA")
-            if schema:
-                try:
-                    # Create schema if it doesn't exist (no-op if already present)
-                    await self.database.execute(f'CREATE SCHEMA IF NOT EXISTS "{schema}"')
-                    # Set the search_path so unqualified table names resolve to the schema
-                    await self.database.execute(f'SET search_path TO "{schema}", public')
-                    logger.info(f'Set search_path to "{schema}"')
-                except Exception as _err:
-                    # Don't fail the entire app if setting schema fails; just log a warning
-                    logger.warning(f'Unable to set search_path to "{schema}": {_err}')
-
-    async def disconnect(self):
-        if self.database.is_connected:
-            await self.database.disconnect()
-            logger.info("Disconnected from DB")
-
-    # ----------------------------
-    # CRUD helpers with logging
-    # ----------------------------
-    async def _log_query(self, query: str, values: Optional[Dict[str, Any]], start_time: float):
-        elapsed = (time.monotonic() - start_time) * 1000
-        formatted_query = query.strip().replace("\n", " ")
-        logger.info(f"[{elapsed:.2f} ms] SQL: {formatted_query} | Params: {values}")
-
-    async def read(self, conn: Database, query: str, values: Optional[Dict[str, Any]] = None):
-        start = time.monotonic()
-        result = await conn.fetch_all(query=query, values=values)
-        await self._log_query(query, values, start)
-        return [dict(r) for r in result]
-
-    async def insert(self, conn: Database, query: str, values: Optional[Dict[str, Any]] = None):
-        start = time.monotonic()
-        result = await conn.execute(query=query, values=values)
-        await self._log_query(query, values, start)
-        return result
-
-    async def update(self, conn: Database, query: str, values: Optional[Dict[str, Any]] = None):
-        start = time.monotonic()
-        result = await conn.execute(query=query, values=values)
-        await self._log_query(query, values, start)
-        return result
-
-    async def delete(self, conn: Database, query: str, values: Optional[Dict[str, Any]] = None):
-        start = time.monotonic()
-        result = await conn.execute(query=query, values=values)
-        await self._log_query(query, values, start)
-        return result
-
-    # ----------------------------
-    # Context manager for DI
-    # ----------------------------
-    @asynccontextmanager
-    async def connection(self):
-        """
-        Provide a per-request transaction and the Database handle.
-        All operations within the context use the same underlying connection.
-        """
-        db_id = id(self.database)
-        logger.info(f"→ Begin transaction on DB #{db_id}")
-        async with self.database.transaction():
-            try:
-                # Ensure per-transaction search_path is set so unqualified names
-                # resolve to the configured schema even for pooled connections.
-                schema = os.getenv("DB_SCHEMA")
-                if schema:
-                    # Basic validation to avoid SQL injection via schema name
-                    if re.match(r'^[A-Za-z_][A-Za-z0-9_]*$', schema):
-                        try:
-                            # Use SET LOCAL so this applies only to the current transaction
-                            await self.database.execute(f'SET LOCAL search_path TO "{schema}", public')
-                            logger.info(f"Applied SET LOCAL search_path TO '{schema}' for transaction #{db_id}")
-                        except Exception as _e:
-                            logger.warning(f"Failed to SET LOCAL search_path to '{schema}': {_e}")
-                    else:
-                        logger.warning(f"DB_SCHEMA '{schema}' contains invalid characters and will be ignored")
-
-                yield self.database
-            finally:
-                logger.info(f"← End transaction on DB #{db_id}")
+# @contextmanager
+def get_db_connection():
+    connection = None
+    cursor = None
+    try:
+        connection = psycopg2.connect(user=DB_USER,password=DB_PASSWORD,host=DB_HOST,port=DB_PORT,dbname=DB_NAME)
+        cursor = connection.cursor(cursor_factory=RealDictCursor)
+        yield cursor
+        connection.commit()
+    except Exception as e:
+        if connection:
+            connection.rollback()
+        raise e
+    finally:
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
 
 
-# ------------------------------------------------------------
-# Instance setup
-# ------------------------------------------------------------
-username = os.getenv("DB_USER")
-password = os.getenv("DB_PASSWORD")
-host = os.getenv("DB_HOST")
-db = os.getenv("DB_NAME")
-port = os.getenv("DB_PORT")
-
-# DATABASE_URL = "sqlite+aiosqlite:///database.db"
-base_url = f"postgresql+asyncpg://{username}:{password}@{host}:{port}/{db}"
+def _connect():
+    return psycopg2.connect(user=DB_USER,password=DB_PASSWORD,host=DB_HOST,port=DB_PORT,dbname=DB_NAME)
 
 
-db = DatabaseManager(base_url)
+def execute_returning_one(query: str, params: dict | None = None):
+    """
+    Execute a DML (INSERT/UPDATE/DELETE) with RETURNING and fetch a single row
+    in a short-lived connection (suitable for transaction poolers).
+    """
+    conn = None
+    cur = None
+    try:
+        conn = _connect()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute(query, params or {})
+        row = None
+        try:
+            row = cur.fetchone()
+        except Exception:
+            row = None
+        conn.commit()
+        return row
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise e
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
 
 
-# ------------------------------------------------------------
-# Dependency for FastAPI
-# ------------------------------------------------------------
-async def get_connection():
-    """Dependency injection provider for FastAPI routes."""
-    async with db.connection() as conn:
-        yield conn
+def execute_all(query: str, params: dict | None = None):
+    """
+    Execute a SELECT and fetchall in a short-lived connection.
+    """
+    conn = None
+    cur = None
+    try:
+        conn = _connect()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute(query, params or {})
+        rows = cur.fetchall()
+        return rows
+    except Exception as e:
+        raise e
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
 
 
+@contextmanager
+def get_cursor():
+    """
+    Context manager for getting a cursor
+    """
+    connection = None
+    try:
+        connection = psycopg2.connect(user=DB_USER,password=DB_PASSWORD,host=DB_HOST,port=DB_PORT,dbname=DB_NAME)
+        cursor = connection.cursor()
+        yield cursor
+    except Exception as e:
+        if connection:
+            connection.rollback()
+        raise e
+    finally:
+        if connection:
+            connection.commit()
+            connection.close()
+
+def get_datas(cursor,query):
+    try:
+        cursor.execute(query)
+        return cursor.fetchall()
+    except Exception as e:
+        raise e
+    
+def get_data(cursor,query):
+    try:
+        cursor.execute(query)
+        return cursor.fetchone()
+    except Exception as e:
+        raise e
+
+def execute_query(cursor, query, params=None):
+    try:
+        cursor.execute(query, params or ())
+        return cursor.fetchall()
+    except Exception as e:
+        raise e
+
+def update(cursor,query):
+    try:
+        cursor.execute(query)
+        return
+    except Exception as e:
+        raise e
+    
+def insert(cursor,query):
+    try:
+        cursor.execute(query)
+        return
+    except Exception as e:
+        print(e)
+        raise e
+
+def return_insert(cursor,query, params=None):
+    try:
+        cursor.execute(query, params or ())
+        return cursor.fetchone()
+    except Exception as e:
+        raise e
+    
+def return_update(cursor,query):
+    try:
+        cursor.execute(query)
+        return cursor.fetchone()
+    except Exception as e:
+        raise e
+    
+
+a= """
+    CREATE TABLE IF NOT EXISTS vi.user_details (
+        user_id INTEGER PRIMARY KEY,
+        full_name TEXT NOT NULL,
+        bio TEXT,
+        gender TEXT,
+        date_of_birth DATE,
+        age INTEGER,                     -- optional, or calculate from DOB
+        mobile_number TEXT,
+        website TEXT,
+        interests TEXT,                  -- JSON string or comma-separated
+        country TEXT,
+        profile_pic_dms TEXT,
+        is_private BOOLEAN DEFAULT FALSE,
+        last_seen TIMESTAMP WITH TIME ZONE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+
+"""
+def check_db_connection(timeout: int = 5) -> bool:
+    """
+    Returns True if DB is reachable and responds to SELECT 1, else False.
+    """
+    conn = None
+    try:
+        conn = psycopg2.connect(
+            user=DB_USER,
+            password=DB_PASSWORD,
+            host=DB_HOST,
+            port=DB_PORT,
+            dbname=DB_NAME,
+            connect_timeout=timeout,
+        )
+        with conn.cursor() as cur:
+            # Use lowercase unquoted identifiers to avoid case-sensitive schema issues
+            cur.execute("SELECT 1;")
+            print(cur.fetchone())
+        return True
+    except Exception as e:
+        print(e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+print(check_db_connection())

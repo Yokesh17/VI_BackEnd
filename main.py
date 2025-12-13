@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Depends, Request, HTTPException
-from db_config import db, get_connection
+from db_config import  get_cursor as get_connection, execute_query, insert
 from fastapi.responses import JSONResponse
 from queries import USERS_TABLE_CREATE, USER_DETAILS_CREATE
 from fastapi.exceptions import RequestValidationError
@@ -43,7 +43,7 @@ app.add_middleware(
 
 app.include_router(auth_route.router,tags=["auth"])
 
-db.register_events(app)
+# db.register_events(app)
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
@@ -102,11 +102,11 @@ async def db_session_middleware(request: Request, call_next):
 
 import os
 @app.on_event("startup")
-async def setup_db():
+def setup_db():
     # Run DDL once at startup; no need for per-request transaction here
-    async with db.connection() as conn:
-        await db.insert(conn,USERS_TABLE_CREATE)
-        await db.insert(conn,USER_DETAILS_CREATE)
+    with get_connection() as conn:
+        insert(conn,USERS_TABLE_CREATE)
+        insert(conn,USER_DETAILS_CREATE)
 
 
 
