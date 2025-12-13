@@ -61,9 +61,7 @@ RETURNING id
 LOGIN_USER = f'''SELECT id,username,email,password
                 FROM vi.users WHERE username=%(username)s ;'''
 
-LOGIN_USER_WITH_EMAIL = f'''SELECT id,username,email,password,
-                    created_at + interval '5 hours 30 minutes' AS created_at_ist,
-                    updated_at + interval '5 hours 30 minutes' AS updated_at_ist
+LOGIN_USER_WITH_EMAIL = f'''SELECT id,username,email,password
                 FROM vi.users WHERE email = %(email)s '''
 
 
