@@ -7,7 +7,7 @@ S = os.getenv("DB_SCHEMA.", "")
 
 
 USERS_TABLE_CREATE = f"""
-    CREATE TABLE IF NOT EXISTS {S}users (
+    CREATE TABLE IF NOT EXISTS vi.users (
         id SERIAL PRIMARY KEY,
         username TEXT NOT NULL UNIQUE,
         email TEXT NOT NULL UNIQUE,
@@ -44,12 +44,12 @@ USER_DETAILS_CREATE = f"""
 USERS_SELECT_ALL = f'''SELECT id, username, email, password,
                         (created_at + INTERVAL '5 hours 30 minutes') AS created_at_ist,
                         (updated_at + INTERVAL '5 hours 30 minutes') AS updated_at_ist
-                    FROM {S}users '''
+                    FROM vi.users '''
 
 USER_INFO = F'''SELECT id, username, email,
                     (created_at + INTERVAL '5 hours 30 minutes') AS created_at_ist,
                     (updated_at + INTERVAL '5 hours 30 minutes') AS updated_at_ist
-                FROM {S}users WHERE id=:id'''
+                FROM vi.users WHERE id=:id'''
 
 USERS_INSERT = f"""
 INSERT INTO vi.users (username, email, password)
@@ -59,11 +59,11 @@ RETURNING id
 
 
 LOGIN_USER = f'''SELECT id,username,email,password
-                FROM {S}users WHERE username=%(username)s ;'''
+                FROM vi.users WHERE username=%(username)s ;'''
 
 LOGIN_USER_WITH_EMAIL = f'''SELECT id,username,email,password,
                     created_at + interval '5 hours 30 minutes' AS created_at_ist,
                     updated_at + interval '5 hours 30 minutes' AS updated_at_ist
-                FROM {S}users WHERE email = %(email)s '''
+                FROM vi.users WHERE email = %(email)s '''
 
 

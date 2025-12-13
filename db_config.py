@@ -27,10 +27,10 @@ def get_db_connection():
         connection = psycopg2.connect(user=DB_USER,password=DB_PASSWORD,host=DB_HOST,port=DB_PORT,dbname=DB_NAME)
         cursor = connection.cursor(cursor_factory=RealDictCursor)
         yield cursor
-        connection.commit()
+        # connection.commit()
     except Exception as e:
-        if connection:
-            connection.rollback()
+        # if connection:
+        #     connection.rollback()
         raise e
     finally:
         if cursor:
