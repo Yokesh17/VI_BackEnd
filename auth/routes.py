@@ -9,11 +9,13 @@ from utils import hash_password, verify_password
 from .dependencies import get_current_user
 import base64
 import json
+from datetime import datetime, date
+from .auth_checks import validate_user
 
 class User(BaseModel):
-    username: str = Field(..., min_length=3, max_length=50)  
-    email: EmailStr  # Validates if the email is in a valid format
-    password: str = Field(..., min_length=8) 
+    username: str 
+    email: str  # Validates if the email is in a valid format
+    password: str
 
 class Login(BaseModel):
     username: str  # Can be either username or email
@@ -60,16 +62,19 @@ def create_user(payload: LoginPayload):
     user_data = json.loads(decoded)
     data = User(**user_data)
 
+    if validate_user(data).get("status")=="failure":
+        return validate_user(data)
+
     # Execute insert in a single, short-lived connection suitable for transaction pooling
-    result = execute_returning_one(
-        USERS_INSERT,
-        {
-            "username": data.username,
-            "email": data.email,
-            "password": hash_password(data.password),
-        },
-    )
-    return {"status": "success", "data": result["id"]}
+    # result = execute_returning_one(
+    #     USERS_INSERT,
+    #     {
+    #         "username": data.username,
+    #         "email": data.email,
+    #         "password": hash_password(data.password),
+    #     },
+    # ), "data": result["id"]
+    return {"status": "success"}
 
 
 @router.post("/refresh")
@@ -82,6 +87,21 @@ def refresh_token(refresh_token: str | None = Cookie(default=None)):
 
     new_access_token = create_access_token({"sub": username})
     return {"status" : "success" ,"access_token": new_access_token}
+
+
+@router.post("/check-details")
+def check_details(payload : dict):
+    if payload.get("dob"):
+        dob = datetime.strptime(payload.get("dob"), "%Y-%m-%d").date()
+        today = date.today()
+
+        age = today.year - dob.year - (
+            (today.month, today.day) < (dob.month, dob.day)
+        )
+    else: 
+        return {"status": "failure", "message": "Date of birth is required"}
+
+    return {"status": "success", "data": {"age" : age , "gender" : payload.get("gender")}}
 
 
 @router.get("/protected")
