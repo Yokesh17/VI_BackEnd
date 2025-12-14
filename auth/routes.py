@@ -98,6 +98,8 @@ def check_details(payload : dict):
         age = today.year - dob.year - (
             (today.month, today.day) < (dob.month, dob.day)
         )
+        if age<16:
+            return {"status": "failure", "message": "You must be at least 16 years old to register"}
     else: 
         return {"status": "failure", "message": "Date of birth is required"}
 
