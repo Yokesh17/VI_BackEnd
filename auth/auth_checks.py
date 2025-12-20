@@ -50,7 +50,7 @@ def validate_password(password, confirm_password):
     if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
         return {"status": "failure", "message": "Password must contain at least one special character."}
 
-    return True
+    return {'status': 'success'}
 
 
 

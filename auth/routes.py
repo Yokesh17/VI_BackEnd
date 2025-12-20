@@ -4,7 +4,7 @@ from .utils import create_access_token, create_refresh_token, decode_token
 from datetime import datetime
 from db_config import  get_db_connection as get_connection, get_data, get_datas, execute_query, update, return_update, insert, return_insert, execute_returning_one, execute_all
 from pydantic import BaseModel, EmailStr, Field
-from queries import  USERS_SELECT_ALL, USERS_INSERT, LOGIN_USER, LOGIN_USER_WITH_EMAIL
+from queries import  USERS_SELECT_ALL, USERS_INSERT, LOGIN_USER, LOGIN_USER_WITH_EMAIL, USERS_DETAILS_INSERT, USERS_UPDATE_EMAIL_VERIFY
 from utils import hash_password, verify_password
 from .dependencies import get_current_user
 import base64
@@ -12,10 +12,23 @@ import json
 from datetime import datetime, date
 from .auth_checks import validate_user
 
+def parse_date(date_str: str):
+    if date_str: return datetime.strptime(date_str, "%d-%m-%Y").date()
+
 class User(BaseModel):
     username: str 
     email: str  # Validates if the email is in a valid format
     password: str
+
+class UserDetails(BaseModel):
+    userName: str
+    name: str
+    gender: str 
+    date_of_birth: str 
+    email: str 
+    phone: str | None
+    password : str
+    otp: str
 
 class Login(BaseModel):
     username: str  # Can be either username or email
@@ -73,8 +86,8 @@ def create_user(payload: LoginPayload):
     #         "email": data.email,
     #         "password": hash_password(data.password),
     #     },
-    # ), "data": result["id"]
-    return {"status": "success"}
+    # ) , "data": result["id"]
+    return {"status": "success" }
 
 
 @router.post("/refresh")
@@ -105,6 +118,41 @@ def check_details(payload : dict):
 
     return {"status": "success", "data": {"age" : age , "gender" : payload.get("gender")}}
 
+@router.post("/otp-verify")
+def verify_otp(data: UserDetails):
+    # data = UserDetails(**payload)
+
+    if len(data.otp) != 4:  return {"status": "failure", "message": "Invalid OTP"}
+
+    result = execute_returning_one(
+        USERS_INSERT,
+        {
+            "username": data.userName,
+            "email": data.email,
+            "password": hash_password(data.password),
+            "email_verified": True
+        },
+    ) 
+
+    results = execute_returning_one(
+        USERS_DETAILS_INSERT,
+        {
+            "user_id": result["id"],
+            "mobile_number": data.phone,    
+            "full_name": data.name,
+            "gender": data.gender,
+            "date_of_birth": parse_date(data.date_of_birth),
+            # "age": payload.get('age'),
+        },
+    )
+    # execute_query(
+    #     USERS_UPDATE_EMAIL_VERIFY,
+    #     {
+    #         "user_id": result["id"]
+    #     }
+    # )
+
+    return {"status": "success", "message": "OTP verified successfully","data" : results}
 
 @router.get("/protected")
 def protected_route(current_user: str = Depends(get_current_user)):
