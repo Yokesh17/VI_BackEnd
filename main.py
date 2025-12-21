@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, Request, HTTPException
 from db_config import  get_cursor as get_connection, execute_query, insert
 from fastapi.responses import JSONResponse
-from queries import USERS_TABLE_CREATE, USER_DETAILS_CREATE
+from queries.create_tables import USERS_TABLE_CREATE, USER_DETAILS_CREATE
 from fastapi.exceptions import RequestValidationError
 from pydantic_core import ValidationError
 from auth import routes as auth_route

@@ -2,15 +2,19 @@ from fastapi import APIRouter, Depends, HTTPException, Response, Cookie, Request
 from fastapi.responses import JSONResponse
 from .utils import create_access_token, create_refresh_token, decode_token
 from datetime import datetime
-from db_config import  get_db_connection as get_connection, get_data, get_datas, execute_query, update, return_update, insert, return_insert, execute_returning_one, execute_all
 from pydantic import BaseModel, EmailStr, Field
-from queries import  USERS_SELECT_ALL, USERS_INSERT, LOGIN_USER, LOGIN_USER_WITH_EMAIL, USERS_DETAILS_INSERT, USERS_UPDATE_EMAIL_VERIFY
-from utils import hash_password, verify_password
-from .dependencies import get_current_user
 import base64
 import json
 from datetime import datetime, date
-from .auth_checks import validate_user
+
+from utils import hash_password, verify_password
+from .dependencies import get_current_user
+from .auth_checks import validate_user, details_check
+from db_config import  get_db_connection as get_connection, get_data, get_datas, execute_query, update, return_update, insert, return_insert, execute_returning_one, execute_all
+
+from queries.create_tables import   LOGIN_USER, LOGIN_USER_WITH_EMAIL
+from queries.fetch_data import USERS_SELECT_ALL, USER_INFO
+from queries.updates import USERS_INSERT,USERS_DETAILS_INSERT,USERS_UPDATE_EMAIL_VERIFY
 
 def parse_date(date_str: str):
     if date_str: return datetime.strptime(date_str, "%d-%m-%Y").date()
@@ -79,14 +83,22 @@ def create_user(payload: LoginPayload):
         return validate_user(data)
 
     # Execute insert in a single, short-lived connection suitable for transaction pooling
-    # result = execute_returning_one(
-    #     USERS_INSERT,
-    #     {
-    #         "username": data.username,
-    #         "email": data.email,
-    #         "password": hash_password(data.password),
-    #     },
-    # ) , "data": result["id"]
+    # try:
+    #     result = execute_returning_one(
+    #         USERS_INSERT,
+    #         {
+    #             "username": data.username,
+    #             "email": data.email,
+    #             "password": hash_password(data.password),
+    #         },
+    #     ) 
+    # except Exception as e:  
+    #     if "users_username_key" in str(e):
+    #         message = "Username already exists"
+    #     elif "users_email_key" in str(e):
+    #         message = "Email already exists"
+    #     return {"status": "failure", "message": message}
+
     return {"status": "success" }
 
 
@@ -104,19 +116,7 @@ def refresh_token(refresh_token: str | None = Cookie(default=None)):
 
 @router.post("/check-details")
 def check_details(payload : dict):
-    if payload.get("dob"):
-        dob = datetime.strptime(payload.get("dob"), "%Y-%m-%d").date()
-        today = date.today()
-
-        age = today.year - dob.year - (
-            (today.month, today.day) < (dob.month, dob.day)
-        )
-        if age<16:
-            return {"status": "failure", "message": "You must be at least 16 years old to register"}
-    else: 
-        return {"status": "failure", "message": "Date of birth is required"}
-
-    return {"status": "success", "data": {"age" : age , "gender" : payload.get("gender")}}
+    return details_check(payload)
 
 @router.post("/otp-verify")
 def verify_otp(data: UserDetails):

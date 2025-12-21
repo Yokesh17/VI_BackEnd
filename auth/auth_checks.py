@@ -1,6 +1,7 @@
 # from jose import jwt, JWTError
 from db_config import get_db_connection, execute_query, get_data, return_update , execute_all
 import re
+from datetime import datetime, date
 
 
 
@@ -31,6 +32,11 @@ def check_email(email):
         return {"status" : "failure" , "message": "Invalid email"}
     return {'status': 'success'}
 
+def check_mobile(mobile):
+    mobile = execute_all( f"SELECT id FROM vi.users WHERE mobile_number = '{mobile}'; ")
+    if mobile: return {"status" : "failure", "message" : "Mobile number already registered"}
+    return {'status': 'success'}
+
 def is_valid_email(email):
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     return re.match(pattern, email) is not None
@@ -53,7 +59,42 @@ def validate_password(password, confirm_password):
     return {'status': 'success'}
 
 
+def details_check(payload):
+    if payload.get("type")=="mobile":
+        phone = payload.get("phone")
+        phone_pattern = r'^\+?\d{10,15}$'
+        if not phone or not re.match(phone_pattern, phone):
+            return {"status": "failure", "message": "Invalid phone number"}
+        check = check_mobile(phone)
+        if check.get("status")!="success": return check
+        
+        data = {"phone": mask_phone(phone)}
+        
+    elif payload.get("type")=="register":
+        if payload.get("dob"):
+            dob = datetime.strptime(payload.get("dob"), "%Y-%m-%d").date()
+            today = date.today()
 
+            age = today.year - dob.year - (
+                (today.month, today.day) < (dob.month, dob.day)
+            )
+            if age<16:
+                return {"status": "failure", "message": "You must be at least 16 years old to register"}
+        else: 
+            return {"status": "failure", "message": "Date of birth is required"}
+        data = {"age" : age , "gender" : payload.get("gender")}
+    
+    else:
+        return {"status": "failure", "message": "Invalid request"}
+
+    return {"status": "success", "data": data}
+
+
+
+def mask_phone(phone: str) -> str:
+    if len(phone) <= 4:
+        return "*" * len(phone)
+    return "*" * (len(phone) - 4) + phone[-4:]
 
 
 
