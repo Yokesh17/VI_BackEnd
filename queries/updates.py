@@ -17,3 +17,16 @@ UPDATE vi.users
 SET email_verified = TRUE
 WHERE user_id = %(user_id)s;
 """
+
+
+USERS_UPDATE_PHONE_VERIFY = """
+UPDATE vi.users
+SET mobile_verified = TRUE
+WHERE id = %(user_id)s;
+"""
+
+USER_DETAILS_UPDATE_PHONE = """
+UPDATE vi.user_details
+SET mobile_number = %(mobile_number)s
+WHERE user_id = %(user_id)s;
+"""

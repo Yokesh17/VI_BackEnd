@@ -72,7 +72,7 @@ def details_check(payload):
         
     elif payload.get("type")=="register":
         if payload.get("dob"):
-            dob = datetime.strptime(payload.get("dob"), "%Y-%m-%d").date()
+            dob = datetime.strptime(payload.get("dob"), "%d-%m-%Y").date()
             today = date.today()
 
             age = today.year - dob.year - (

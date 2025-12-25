@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, Response, Cookie, Request
 from fastapi.responses import JSONResponse
 from .utils import create_access_token, create_refresh_token, decode_token
 from datetime import datetime
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, BaseModel
+from typing import Union, Literal
 import base64
 import json
 from datetime import datetime, date
@@ -14,7 +15,7 @@ from db_config import  get_db_connection as get_connection, get_data, get_datas,
 
 from queries.create_tables import   LOGIN_USER, LOGIN_USER_WITH_EMAIL
 from queries.fetch_data import USERS_SELECT_ALL, USER_INFO
-from queries.updates import USERS_INSERT,USERS_DETAILS_INSERT,USERS_UPDATE_EMAIL_VERIFY
+from queries.updates import USERS_INSERT,USERS_DETAILS_INSERT,USERS_UPDATE_EMAIL_VERIFY, USERS_UPDATE_PHONE_VERIFY, USER_DETAILS_UPDATE_PHONE
 
 def parse_date(date_str: str):
     if date_str: return datetime.strptime(date_str, "%d-%m-%Y").date()
@@ -24,15 +25,25 @@ class User(BaseModel):
     email: str  # Validates if the email is in a valid format
     password: str
 
-class UserDetails(BaseModel):
-    userName: str
-    name: str
+
+class userPayload(BaseModel):
+    userName: str 
+    name: str 
     gender: str 
     date_of_birth: str 
     email: str 
-    phone: str | None
-    password : str
+    password : str 
+    otp: str 
+    type : Literal["email"]
+
+class mobileOTP(BaseModel):
+    type: Literal["mobile"]
+    phone: str
     otp: str
+
+UserDetails = Union[userPayload, mobileOTP]
+
+    
 
 class Login(BaseModel):
     username: str  # Can be either username or email
@@ -119,38 +130,60 @@ def check_details(payload : dict):
     return details_check(payload)
 
 @router.post("/otp-verify")
-def verify_otp(data: UserDetails):
+def verify_otp(response: Response, data: UserDetails):
     # data = UserDetails(**payload)
 
     if len(data.otp) != 4:  return {"status": "failure", "message": "Invalid OTP"}
 
-    result = execute_returning_one(
-        USERS_INSERT,
-        {
-            "username": data.userName,
-            "email": data.email,
-            "password": hash_password(data.password),
-            "email_verified": True
-        },
-    ) 
+    if data.type == 'email':
+        result = execute_returning_one(
+            USERS_INSERT,
+            {
+                "username": data.userName,
+                "email": data.email,
+                "password": hash_password(data.password),
+                "email_verified": True
+            },
+        ) 
 
-    results = execute_returning_one(
-        USERS_DETAILS_INSERT,
-        {
-            "user_id": result["id"],
-            "mobile_number": data.phone,    
-            "full_name": data.name,
-            "gender": data.gender,
-            "date_of_birth": parse_date(data.date_of_birth),
-            # "age": payload.get('age'),
-        },
-    )
-    # execute_query(
-    #     USERS_UPDATE_EMAIL_VERIFY,
-    #     {
-    #         "user_id": result["id"]
-    #     }
-    # )
+        results = execute_returning_one(
+            USERS_DETAILS_INSERT,
+            {
+                "user_id": result["id"],
+                "mobile_number": data.phone,    
+                "full_name": data.name,
+                "gender": data.gender,
+                "date_of_birth": parse_date(data.date_of_birth),
+                # "age": payload.get('age'),
+            },
+        )
+
+        # Generate tokens
+        access_token = create_access_token(results)
+        refresh_token = create_refresh_token(results)
+        # Send refresh token as HTTP-only cookie
+        response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, samesite="lax")
+        return {"status" : "success", "message": "OTP verified successfully","access_token": access_token}
+
+    elif data.type == 'mobile':
+        update_mobile = execute_returning_one(
+            USERS_UPDATE_PHONE_VERIFY,
+            {
+               "user_id": 20
+            },
+        ) 
+        update_mobile_otp = execute_returning_one(
+            USER_DETAILS_UPDATE_PHONE,
+            {
+               "user_id": 20,
+               "mobile_number": data.phone
+            },
+        ) 
+        results = update_mobile_otp
+    
+    else:
+        return {"status": "failure", "message": "Invalid request"}
+
 
     return {"status": "success", "message": "OTP verified successfully","data" : results}
 
