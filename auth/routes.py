@@ -150,7 +150,7 @@ def verify_otp(response: Response, data: UserDetails):
             USERS_DETAILS_INSERT,
             {
                 "user_id": result["id"],
-                "mobile_number": data.phone,    
+                "mobile_number": None,    
                 "full_name": data.name,
                 "gender": data.gender,
                 "date_of_birth": parse_date(data.date_of_birth),
