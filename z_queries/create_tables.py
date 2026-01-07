@@ -55,15 +55,32 @@ CREATE INDEX IF NOT EXISTS idx_user_details_user_id ON vi.user_details (user_id)
 
 
 
+USER_CONNECTIONS_CREATE = f"""
+CREATE TABLE vi.user_connections (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    connected_user_id INTEGER NOT NULL,
+    status TEXT CHECK (status IN ('pending', 'accepted', 'blocked')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+
+    UNIQUE(user_id, connected_user_id),
+    FOREIGN KEY (user_id) REFERENCES vi.users(id),
+    FOREIGN KEY (connected_user_id) REFERENCES vi.users(id)
+);
+"""
+
+USER_INTERESTS_CREATE = f"""
+CREATE TABLE vi.user_interests (
+    user_id INTEGER,
+    interest TEXT,
+    PRIMARY KEY (user_id, interest),
+    FOREIGN KEY (user_id) REFERENCES vi.users(id)
+);
+"""
 
 
 
 
 
-LOGIN_USER = f'''SELECT id,username,email,password
-                FROM vi.users WHERE username=%(username)s ;'''
-
-LOGIN_USER_WITH_EMAIL = f'''SELECT id,username,email,password
-                FROM vi.users WHERE email = %(email)s '''
 
 

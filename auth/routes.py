@@ -13,9 +13,9 @@ from .dependencies import get_current_user
 from .auth_checks import validate_user, details_check
 from db_config import  get_db_connection as get_connection, get_data, get_datas, execute_query, update, return_update, insert, return_insert, execute_returning_one, execute_all
 
-from queries.create_tables import   LOGIN_USER, LOGIN_USER_WITH_EMAIL
-from queries.fetch_data import USERS_SELECT_ALL, USER_INFO
-from queries.updates import USERS_INSERT,USERS_DETAILS_INSERT,USERS_UPDATE_EMAIL_VERIFY, USERS_UPDATE_PHONE_VERIFY, USER_DETAILS_UPDATE_PHONE
+# from queries.create_tables import   LOGIN_USER, LOGIN_USER_WITH_EMAIL
+from .query import USERS_SELECT_ALL, USER_INFO, LOGIN_USER, LOGIN_USER_WITH_EMAIL
+from .query import USERS_INSERT,USERS_DETAILS_INSERT,USERS_UPDATE_EMAIL_VERIFY, USERS_UPDATE_PHONE_VERIFY, USER_DETAILS_UPDATE_PHONE
 
 def parse_date(date_str: str):
     if date_str: return datetime.strptime(date_str, "%d-%m-%Y").date()
@@ -71,6 +71,7 @@ def login(response: Response, payload: LoginPayload,  conn=Depends(get_connectio
     
     if not result or not verify_password(data.password, result[0]["password"]):
         return {"status": "failure", "message": "invalid username or password"}
+    result[0].pop("password", None)
 
     data = {"sub": result}
 
@@ -79,7 +80,7 @@ def login(response: Response, payload: LoginPayload,  conn=Depends(get_connectio
     refresh_token = create_refresh_token(data)
 
     # Send refresh token as HTTP-only cookie
-    response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, samesite="lax")
+    response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, samesite="none", secure=True)
 
     return {"status" : "success","access_token": access_token}
 

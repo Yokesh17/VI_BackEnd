@@ -1,11 +1,15 @@
 from fastapi import FastAPI, Depends, Request, HTTPException
-from db_config import  get_cursor as get_connection, execute_query, insert
 from fastapi.responses import JSONResponse
-from queries.create_tables import USERS_TABLE_CREATE, USER_DETAILS_CREATE
 from fastapi.exceptions import RequestValidationError
 from pydantic_core import ValidationError
-from auth import routes as auth_route
 from fastapi.middleware.cors import CORSMiddleware
+
+from db_config import  get_cursor as get_connection, execute_query, insert
+from z_queries.create_tables import USERS_TABLE_CREATE, USER_DETAILS_CREATE
+
+from auth import routes as auth_route
+from suggestion import routes as suggestion_route
+from user_profile import routes as profile_route
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -28,20 +32,10 @@ app.add_middleware(
   allow_headers=["*"],
 )
 
-# @app.options("/{rest_of_path:path}")
-# async def preflight_handler(rest_of_path: str):
-#     return JSONResponse(
-#         status_code=200,
-#         content=None,
-#         headers={
-#             "Access-Control-Allow-Origin": "http://localhost:5173",
-#             "Access-Control-Allow-Methods": "*",
-#             "Access-Control-Allow-Headers": "*",
-#             "Access-Control-Allow-Credentials": "true",
-#         }
-#     )
 
 app.include_router(auth_route.router,tags=["auth"])
+app.include_router(suggestion_route.router,tags=["suggestions"])
+app.include_router(profile_route.router,tags=["profile"])
 
 # db.register_events(app)
 
@@ -101,12 +95,12 @@ async def db_session_middleware(request: Request, call_next):
     return response
 
 import os
-@app.on_event("startup")
-def setup_db():
-    # Run DDL once at startup; no need for per-request transaction here
-    with get_connection() as conn:
-        insert(conn,USERS_TABLE_CREATE)
-        insert(conn,USER_DETAILS_CREATE)
+# @app.on_event("startup")
+# def setup_db():
+#     # Run DDL once at startup; no need for per-request transaction here
+#     with get_connection() as conn:
+#         insert(conn,USERS_TABLE_CREATE)
+#         insert(conn,USER_DETAILS_CREATE)
 
 
 

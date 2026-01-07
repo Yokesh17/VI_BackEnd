@@ -213,4 +213,4 @@ def check_db_connection(timeout: int = 5) -> bool:
             conn.close()
             
 
-print(check_db_connection())
+# print(check_db_connection())
