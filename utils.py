@@ -2,7 +2,7 @@ from zoneinfo import ZoneInfo
 from passlib.context import CryptContext
 import jwt
 from datetime import datetime, timedelta
-from fastapi import HTTPException, status, Depends, HTTPException, status
+from fastapi import HTTPException, status, Depends, HTTPException, status, Header
 from fastapi.security import OAuth2PasswordBearer, HTTPBearer, HTTPAuthorizationCredentials
 from db_config import secret_key, algorithm
 
@@ -40,13 +40,14 @@ def decode_token(token: str):
     
 
 
-security = HTTPBearer()
-
-def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
-):
+def get_current_user(authorization: str = Header(...)):
     try:
-        token = credentials.credentials
+         # Check if header starts with Bearer
+        if not authorization or not authorization.startswith("Bearer "):
+            raise HTTPException(status_code=200, detail="Invalid token")
+
+        token = authorization.split(" ")[1]  # ✅ just the token
+
         payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
         print(payload)
         return payload["sub"]

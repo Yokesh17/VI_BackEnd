@@ -19,6 +19,8 @@ DB_NAME = os.getenv("DB_NAME")
 secret_key = os.getenv("SECRET_KEY")
 algorithm = os.getenv("ALGORITHM")
 
+
+
 # @contextmanager
 def get_db_connection():
     connection = None
