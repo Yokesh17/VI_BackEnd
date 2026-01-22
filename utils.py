@@ -40,7 +40,7 @@ def decode_token(token: str):
     
 
 
-def get_current_userr(authorization: str = Header(...)):
+def get_current_user(authorization: str = Header(...)):
     try:
          # Check if header starts with Bearer
         if not authorization or not authorization.startswith("Bearer "):
@@ -59,7 +59,7 @@ def get_current_userr(authorization: str = Header(...)):
 
 security = HTTPBearer()
 
-def get_current_user(
+def get_current_userr(
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
     try:
