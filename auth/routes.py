@@ -188,6 +188,17 @@ def verify_otp(response: Response, data: UserDetails):
 
     return {"status": "success", "message": "OTP verified successfully","data" : results}
 
+
+
+
+
+
+
+
+
+
+
+
 @router.get("/protected")
 def protected_route(current_user: str = Depends(get_current_user)):
     return {"message": f"Hello {current_user}, you accessed a protected route!"}
@@ -199,11 +210,6 @@ def protected_route(current_user: str = Depends(get_current_user)):
 
 
 
-# @router.get("/users")
-# def list_users():
-#     result = execute_all(USERS_SELECT_ALL)
-# pen within a single transaction/connection per request
-#     result = await db.read(conn, USERS_SELECT_ALL)
 
 
 

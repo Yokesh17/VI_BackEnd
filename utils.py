@@ -40,7 +40,7 @@ def decode_token(token: str):
     
 
 
-def get_current_user(authorization: str = Header(...)):
+def get_current_userr(authorization: str = Header(...)):
     try:
          # Check if header starts with Bearer
         if not authorization or not authorization.startswith("Bearer "):
@@ -55,4 +55,21 @@ def get_current_user(authorization: str = Header(...)):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    
+
+security = HTTPBearer()
+
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    try:
+        token = credentials.credentials
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        print(payload)
+        return payload["sub"][0]
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    
     

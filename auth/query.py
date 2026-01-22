@@ -8,10 +8,10 @@ USER_INFO = F'''SELECT id, username, email,
                     (updated_at + INTERVAL '5 hours 30 minutes') AS updated_at_ist
                 FROM vi.users WHERE id=:id'''
 
-LOGIN_USER = f'''SELECT id,username,email,password
+LOGIN_USER = f'''SELECT id,username,password
                 FROM vi.users WHERE username=%(username)s ;'''
 
-LOGIN_USER_WITH_EMAIL = f'''SELECT id,username,email,password
+LOGIN_USER_WITH_EMAIL = f'''SELECT id,username,password
                 FROM vi.users WHERE email = %(email)s '''
 
 

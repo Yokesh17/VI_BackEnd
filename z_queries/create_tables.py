@@ -82,5 +82,89 @@ CREATE TABLE vi.user_interests (
 
 
 
+# uploads table
+
+# Table to store all media uploads (images, videos, etc.) - ORIGINAL FILES ONLY
+MEDIA_UPLOADS_TABLE = """
+    CREATE TABLE IF NOT EXISTS vi.media_uploads (
+        id SERIAL PRIMARY KEY,
+        media_id VARCHAR(100) UNIQUE NOT NULL,  -- Unique identifier (UUID)
+        user_id INTEGER NOT NULL,
+        file_type VARCHAR(50) NOT NULL,  -- 'image', 'video', 'document'
+        mime_type VARCHAR(100) NOT NULL,  -- 'image/jpeg', 'image/png', 'video/mp4', etc.
+        original_filename VARCHAR(255),
+        file_size_bytes BIGINT NOT NULL,
+        
+        -- Storage path for original file only
+        storage_key TEXT NOT NULL,  -- R2 storage key for original file
+        
+        -- Metadata
+        width INTEGER,  -- Original width for images/videos
+        height INTEGER,  -- Original height for images/videos
+        duration_seconds INTEGER,  -- For videos
+        
+        -- Status and tracking
+        upload_status VARCHAR(20) DEFAULT 'completed',  -- 'processing', 'completed', 'failed'
+        is_deleted BOOLEAN DEFAULT FALSE,
+        
+        -- Timestamps
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP WITH TIME ZONE,
+        
+        FOREIGN KEY (user_id) REFERENCES vi.users(id) ON DELETE CASCADE
+    );
+"""
+
+MEDIA_UPLOADS_INDEXES = """
+    CREATE INDEX IF NOT EXISTS idx_media_uploads_media_id ON vi.media_uploads (media_id);
+    CREATE INDEX IF NOT EXISTS idx_media_uploads_user_id ON vi.media_uploads (user_id);
+    CREATE INDEX IF NOT EXISTS idx_media_uploads_created_at ON vi.media_uploads (created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_media_uploads_file_type ON vi.media_uploads (file_type);
+"""
+
+# Table for profile pictures with thumbnails - SELF-CONTAINED
+PROFILE_PICTURES_TABLE = """
+    CREATE TABLE IF NOT EXISTS vi.profile_pictures (
+        id SERIAL PRIMARY KEY,
+        profile_pic_id VARCHAR(100) UNIQUE NOT NULL,  -- Unique identifier for profile picture
+        user_id INTEGER NOT NULL,
+        
+        -- File metadata
+        mime_type VARCHAR(100) NOT NULL,
+        original_filename VARCHAR(255),
+        file_size_bytes BIGINT NOT NULL,
+        
+        -- Storage keys for original and thumbnail
+        original_key TEXT NOT NULL,  -- R2 storage key for original profile image
+        thumbnail_key TEXT NOT NULL,  -- R2 storage key for thumbnail (150x150)
+        
+        -- Image dimensions
+        width INTEGER,
+        height INTEGER,
+        
+        -- Status
+        is_current BOOLEAN DEFAULT TRUE,
+        is_deleted BOOLEAN DEFAULT FALSE,
+        
+        -- Timestamps
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        
+        FOREIGN KEY (user_id) REFERENCES vi.users(id) ON DELETE CASCADE
+    );
+"""
+
+PROFILE_PICTURES_INDEXES = """
+    CREATE INDEX IF NOT EXISTS idx_profile_pictures_profile_pic_id ON vi.profile_pictures (profile_pic_id);
+    CREATE INDEX IF NOT EXISTS idx_profile_pictures_user_id ON vi.profile_pictures (user_id);
+    CREATE INDEX IF NOT EXISTS idx_profile_pictures_is_current ON vi.profile_pictures (user_id, is_current);
+"""
+
+
+
+
+
+
 
 

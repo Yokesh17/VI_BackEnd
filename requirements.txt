@@ -38,6 +38,9 @@ httpx==0.23.0
 # For handling file uploads (like images)
 python-multipart
 
+# Image processing library (for thumbnails, resizing, optimization)
+Pillow>=10.0.0
+
 # SQLite for in-memory DB (no need for external DB server)
  # SQLite is usually included in Python, but you can ensure the version
 

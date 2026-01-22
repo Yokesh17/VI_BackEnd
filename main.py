@@ -10,6 +10,7 @@ from z_queries.create_tables import USERS_TABLE_CREATE, USER_DETAILS_CREATE
 from auth import routes as auth_route
 from suggestion import routes as suggestion_route
 from user_profile import routes as profile_route
+from handle_media import routes as media_route
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -36,6 +37,7 @@ app.add_middleware(
 app.include_router(auth_route.router,tags=["auth"])
 app.include_router(suggestion_route.router,tags=["suggestions"])
 app.include_router(profile_route.router,tags=["profile"])
+app.include_router(media_route.router,tags=["media"])
 
 # db.register_events(app)
 
