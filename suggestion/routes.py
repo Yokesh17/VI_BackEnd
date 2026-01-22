@@ -24,7 +24,7 @@ def fetch_friend_suggestions(
 ):
     suggestions = get_friend_suggestions(
         conn=conn,
-        current_user_id=user_id[0]["id"],
+        current_user_id=user_id["id"],
         limit=limit
     )
 

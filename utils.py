@@ -50,7 +50,7 @@ def get_current_user(authorization: str = Header(...)):
 
         payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
         print(payload)
-        return payload["sub"]
+        return payload["sub"][0]
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")
     except jwt.InvalidTokenError:
